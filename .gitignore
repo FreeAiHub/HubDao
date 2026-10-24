@@ -1,0 +1,16 @@
+# Секреты
+.env
+.env.*
+!.env.example
+
+# Node / сборки
+node_modules/
+dist/
+
+# HyperFrames: рендеры и служебные артефакты
+video/**/renders/
+video/**/.hyperframes/
+
+# Логи с данными клиентов не коммитим, только структуру
+logs/*
+!logs/.gitkeep
