@@ -3,6 +3,7 @@ name: MiniCalc
 on:
   push:
     paths: ["minicalc/**", ".github/workflows/minicalc.yml"]
+    branches: ["**"]
     tags: ["minicalc-v*"]
   pull_request:
     paths: ["minicalc/**", ".github/workflows/minicalc.yml"]
