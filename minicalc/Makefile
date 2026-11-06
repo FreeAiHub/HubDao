@@ -41,7 +41,7 @@ test: $(BUILD)/test_core
 	./$(BUILD)/test_core
 $(BUILD)/test_core: tests/test_core.c $(SRC) src/core.h
 	@mkdir -p $(BUILD)
-	$(CC) -std=c99 -D_DEFAULT_SOURCE -Wall -Wextra -g -o $@ tests/test_core.c
+	$(CC) -std=c99 -Wall -Wextra -g -o $@ tests/test_core.c
 
 clean:
 	rm -rf $(BUILD)

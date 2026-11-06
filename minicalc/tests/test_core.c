@@ -1,4 +1,8 @@
 /* Юніт-тести ядра MiniCalc: cc -std=c99 tests/test_core.c -lm && ./a.out */
+#define _DARWIN_C_SOURCE 1   /* mkdtemp/setenv на macOS */
+#define _DEFAULT_SOURCE 1    /* ... і на glibc */
+#include <stdlib.h>
+#include <unistd.h>
 #include "../src/core.c"
 
 /* заглушки платформи: 8 px на символ */
