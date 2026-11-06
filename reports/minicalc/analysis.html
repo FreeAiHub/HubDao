@@ -1,0 +1,468 @@
+<title>Отчёт MiniCalc</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: инженерный «паспорт сборки» — одна колонка, статусная полоса ОС, майндмэп, затем факты, оценка и план */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --ink: #142030;
+  --muted: #5a6779;
+  --line: #d3dbe5;
+  --accent: #1f5bd0;
+  --accent-soft: #e3ebfb;
+  --ok: #1d8049;
+  --warn: #a86a12;
+  --fail: #c03434;
+  --todo: #77839a;
+  --ok-soft: #e2f3e9;
+  --warn-soft: #f8eedb;
+  --fail-soft: #f9e3e3;
+  --todo-soft: #e9ecf1;
+  --f-display: "Unbounded", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Golos Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #161d27; --ink: #e6ebf2; --muted: #95a2b4; --line: #2a3443;
+    --accent: #7ea6ff; --accent-soft: #1c2a45;
+    --ok: #4cc283; --warn: #e0a64a; --fail: #f07373; --todo: #8f9bb0;
+    --ok-soft: #15301f; --warn-soft: #33270f; --fail-soft: #3a1a1a; --todo-soft: #222a36;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161d27; --ink: #e6ebf2; --muted: #95a2b4; --line: #2a3443;
+  --accent: #7ea6ff; --accent-soft: #1c2a45;
+  --ok: #4cc283; --warn: #e0a64a; --fail: #f07373; --todo: #8f9bb0;
+  --ok-soft: #15301f; --warn-soft: #33270f; --fail-soft: #3a1a1a; --todo-soft: #222a36;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 56px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(26px, 4vw, 40px); letter-spacing: -0.01em; line-height: 1.15; }
+h2 { font-family: var(--f-display); font-weight: 500; font-size: 20px; letter-spacing: 0.01em; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--f-mono); font-size: 0.92em; }
+section { display: flex; flex-direction: column; gap: 16px; }
+
+/* шапка */
+header { display: flex; flex-direction: column; gap: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 14px; }
+.meta span { white-space: nowrap; }
+.lead { font-size: 17px; color: var(--ink); }
+
+/* статусы */
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.s-ok { color: var(--ok); background: var(--ok-soft); }
+.s-warn { color: var(--warn); background: var(--warn-soft); }
+.s-fail { color: var(--fail); background: var(--fail-soft); }
+.s-todo { color: var(--todo); background: var(--todo-soft); }
+
+/* карточки ОС */
+.os-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.os { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.os-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.os dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
+.os dt { color: var(--muted); }
+.os dd { margin: 0; font-variant-numeric: tabular-nums; }
+.big { font-family: var(--f-mono); font-weight: 600; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+.big small { font-size: 13px; color: var(--muted); font-weight: 400; }
+.limit { height: 6px; background: var(--todo-soft); border-radius: 3px; position: relative; overflow: hidden; }
+.limit i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.limit-note { font-size: 12.5px; color: var(--muted); }
+
+/* майндмэп */
+.map-box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; }
+.map-box svg { display: block; width: 100%; min-width: 900px; height: auto; }
+.mm-link { fill: none; stroke: var(--line); stroke-width: 1.6; }
+.mm-trunk { fill: none; stroke: var(--accent); stroke-width: 2.2; opacity: 0.55; }
+.mm-center { fill: var(--accent); }
+.mm-center-t { fill: #ffffff; font-family: var(--f-display); font-size: 22px; font-weight: 700; }
+.mm-center-s { fill: #ffffff; font-family: var(--f-mono); font-size: 11px; opacity: 0.85; }
+.mm-branch { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+.mm-branch-t { fill: var(--ink); font-family: var(--f-body); font-size: 15px; font-weight: 600; }
+.mm-leaf { fill: var(--ink); font-family: var(--f-body); font-size: 13px; }
+.d-ok { fill: var(--ok); } .d-warn { fill: var(--warn); } .d-fail { fill: var(--fail); } .d-todo { fill: var(--todo); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* две колонки */
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+/* хронология */
+ol.timeline { list-style: none; counter-reset: step; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.timeline li { counter-increment: step; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+ol.timeline li:first-child { border-top: 0; }
+ol.timeline li::before { content: counter(step, decimal-leading-zero); font-family: var(--f-mono); font-size: 12px; color: var(--muted); padding-top: 2px; }
+ol.timeline b { font-weight: 600; }
+.tl-res { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+/* таблицы */
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 12.5px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* оценка */
+.score { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.score-num { font-family: var(--f-display); font-weight: 700; font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
+.score-num small { font-size: 20px; color: var(--muted); font-weight: 500; }
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 210px) minmax(0, 1fr) 64px; gap: 12px; align-items: center; font-size: 14px; }
+.bar { height: 10px; background: var(--todo-soft); border-radius: 5px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+.bar-v { font-family: var(--f-mono); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+/* план */
+ol.plan { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+ul.clean { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+
+.arch { font-family: var(--f-mono); font-size: 12.5px; line-height: 1.5; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px; overflow-x: auto; white-space: pre; margin: 0; }
+.note { border-left: 3px solid var(--warn); padding: 4px 0 4px 14px; color: var(--ink); }
+.files { display: flex; flex-wrap: wrap; gap: 8px; }
+.files code { font-family: var(--f-mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+
+@media (max-width: 860px) {
+  .os-grid, .cols, .score { grid-template-columns: minmax(0, 1fr); }
+  .bar-row { grid-template-columns: minmax(0, 1fr) 64px; }
+  .bar-row .bar { grid-column: 1 / -1; grid-row: 2; }
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Отчёт о работе · 6 ноября 2026</div>
+  <h1>MiniCalc: калькулятор для Windows, Linux и macOS</h1>
+  <p class="lead">Калькулятор с окном на чистом C и родном API каждой ОС, история на 15 записей. Linux готов полностью. Windows и macOS собираются, но у каждой осталось по одному открытому пункту. Сборка через Zig 0.17.1 проверена, но ещё не внедрена.</p>
+  <div class="meta">
+    <span>Репозиторий <span class="mono">FreeAiHub/HubDao</span></span>
+    <span>Ветка <span class="mono">claude/funny-turing-6w9baw</span></span>
+    <span>Код <span class="mono">minicalc/</span></span>
+    <span>Последний коммит <span class="mono">07fbcd8</span></span>
+  </div>
+</header>
+
+<section aria-labelledby="h-os">
+  <h2 id="h-os">Статус по ОС</h2>
+  <div class="os-grid">
+    <article class="os">
+      <div class="os-top"><h3>Linux</h3><span class="pill s-ok">Готово</span></div>
+      <div class="big">2.6 <small>МБ RAM (RSS)</small></div>
+      <div class="limit" role="img" aria-label="2.6 из 5 МБ"><i style="width:52%;background:var(--ok)"></i></div>
+      <div class="limit-note">52% от лимита 5 МБ · своя доля (PSS) 1.0 МБ</div>
+      <dl>
+        <dt>GUI</dt><dd>Xlib (X11 / XWayland)</dd>
+        <dt>Файл</dt><dd>35 КБ</dd>
+        <dt>Проверка</dt><dd>Xvfb: клики, клавиши, история</dd>
+      </dl>
+    </article>
+    <article class="os">
+      <div class="os-top"><h3>Windows</h3><span class="pill s-warn">CI красный</span></div>
+      <div class="big">— <small>RAM не измерен вживую</small></div>
+      <div class="limit" role="img" aria-label="не измерено"><i style="width:0"></i></div>
+      <div class="limit-note">smoke-тест на windows-latest ещё не запускался</div>
+      <dl>
+        <dt>GUI</dt><dd>Win32 + GDI</dd>
+        <dt>Файл</dt><dd>54 КБ (MinGW) · 73 КБ (zig cc)</dd>
+        <dt>Проверка</dt><dd>Wine 9.0: окно и кириллица в порядке</dd>
+      </dl>
+    </article>
+    <article class="os">
+      <div class="os-top"><h3>macOS</h3><span class="pill s-fail">16 МБ &gt; 5 МБ</span></div>
+      <div class="big">16 <small>МБ RAM (footprint)</small></div>
+      <div class="limit" role="img" aria-label="16 из 5 МБ"><i style="width:100%;background:var(--fail)"></i></div>
+      <div class="limit-note">320% от лимита · предел любой Cocoa-программы</div>
+      <dl>
+        <dt>GUI</dt><dd>Cocoa (Objective‑C)</dd>
+        <dt>Файл</dt><dd>архив 29 КБ, universal</dd>
+        <dt>Проверка</dt><dd>CI: собран и запущен, вид окна не проверен</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="h-map">
+  <h2 id="h-map">Майндмэп</h2>
+  <div class="legend">
+    <span class="pill s-ok">Работает и проверено</span>
+    <span class="pill s-warn">Работает с оговоркой</span>
+    <span class="pill s-fail">Не работает</span>
+    <span class="pill s-todo">Не начато</span>
+  </div>
+  <div class="map-box">
+    <svg viewBox="0 0 1200 700" role="img" aria-label="Майндмэп проекта MiniCalc: шесть направлений и их статусы">
+      <!-- стволы от центра к веткам -->
+      <path class="mm-trunk" d="M500,350 C 460,350 460,120 420,120"/>
+      <path class="mm-trunk" d="M500,350 L 420,350"/>
+      <path class="mm-trunk" d="M500,350 C 460,350 460,580 420,580"/>
+      <path class="mm-trunk" d="M700,350 C 740,350 740,120 780,120"/>
+      <path class="mm-trunk" d="M700,350 L 780,350"/>
+      <path class="mm-trunk" d="M700,350 C 740,350 740,580 780,580"/>
+
+      <!-- центр -->
+      <rect class="mm-center" x="500" y="310" width="200" height="80" rx="14"/>
+      <text class="mm-center-t" x="600" y="352" text-anchor="middle">MiniCalc</text>
+      <text class="mm-center-s" x="600" y="374" text-anchor="middle">C · 3 ОС · 15 историй</text>
+
+      <!-- ЛЕВО: Windows -->
+      <g>
+        <path class="mm-link" d="M250,120 C 238,120 238,81 231,81"/>
+        <path class="mm-link" d="M250,120 C 238,120 238,107 231,107"/>
+        <path class="mm-link" d="M250,120 C 238,120 238,133 231,133"/>
+        <path class="mm-link" d="M250,120 C 238,120 238,159 231,159"/>
+        <rect class="mm-branch" x="250" y="98" width="170" height="44" rx="9"/>
+        <text class="mm-branch-t" x="335" y="125" text-anchor="middle">Windows</text>
+        <circle class="d-ok" cx="225" cy="81" r="5"/><text class="mm-leaf" x="213" y="85" text-anchor="end">Win32 + GDI, .exe 54–73 КБ</text>
+        <circle class="d-ok" cx="225" cy="107" r="5"/><text class="mm-leaf" x="213" y="111" text-anchor="end">Только системные DLL</text>
+        <circle class="d-warn" cx="225" cy="133" r="5"/><text class="mm-leaf" x="213" y="137" text-anchor="end">Проверено в Wine, не вживую</text>
+        <circle class="d-fail" cx="225" cy="159" r="5"/><text class="mm-leaf" x="213" y="163" text-anchor="end">CI: ошибка WM_DPICHANGED</text>
+      </g>
+
+      <!-- ЛЕВО: Linux -->
+      <g>
+        <path class="mm-link" d="M250,350 C 238,350 238,311 231,311"/>
+        <path class="mm-link" d="M250,350 C 238,350 238,337 231,337"/>
+        <path class="mm-link" d="M250,350 C 238,350 238,363 231,363"/>
+        <path class="mm-link" d="M250,350 C 238,350 238,389 231,389"/>
+        <rect class="mm-branch" x="250" y="328" width="170" height="44" rx="9"/>
+        <text class="mm-branch-t" x="335" y="355" text-anchor="middle">Linux</text>
+        <circle class="d-ok" cx="225" cy="311" r="5"/><text class="mm-leaf" x="213" y="315" text-anchor="end">Xlib, работает в Xvfb</text>
+        <circle class="d-ok" cx="225" cy="337" r="5"/><text class="mm-leaf" x="213" y="341" text-anchor="end">RAM 2.6 МБ RSS / 1.0 PSS</text>
+        <circle class="d-ok" cx="225" cy="363" r="5"/><text class="mm-leaf" x="213" y="367" text-anchor="end">Клики, клавиши, история</text>
+        <circle class="d-warn" cx="225" cy="389" r="5"/><text class="mm-leaf" x="213" y="393" text-anchor="end">Кириллица зависит от шрифтов</text>
+      </g>
+
+      <!-- ЛЕВО: macOS -->
+      <g>
+        <path class="mm-link" d="M250,580 C 238,580 238,541 231,541"/>
+        <path class="mm-link" d="M250,580 C 238,580 238,567 231,567"/>
+        <path class="mm-link" d="M250,580 C 238,580 238,593 231,593"/>
+        <path class="mm-link" d="M250,580 C 238,580 238,619 231,619"/>
+        <rect class="mm-branch" x="250" y="558" width="170" height="44" rx="9"/>
+        <text class="mm-branch-t" x="335" y="585" text-anchor="middle">macOS</text>
+        <circle class="d-ok" cx="225" cy="541" r="5"/><text class="mm-leaf" x="213" y="545" text-anchor="end">Cocoa, universal-сборка</text>
+        <circle class="d-ok" cx="225" cy="567" r="5"/><text class="mm-leaf" x="213" y="571" text-anchor="end">Собран и запущен в CI</text>
+        <circle class="d-fail" cx="225" cy="593" r="5"/><text class="mm-leaf" x="213" y="597" text-anchor="end">RAM 16 МБ &gt; лимита 5 МБ</text>
+        <circle class="d-warn" cx="225" cy="619" r="5"/><text class="mm-leaf" x="213" y="623" text-anchor="end">Вид окна не проверен</text>
+      </g>
+
+      <!-- ПРАВО: Ядро -->
+      <g>
+        <path class="mm-link" d="M950,120 C 962,120 962,81 969,81"/>
+        <path class="mm-link" d="M950,120 C 962,120 962,107 969,107"/>
+        <path class="mm-link" d="M950,120 C 962,120 962,133 969,133"/>
+        <path class="mm-link" d="M950,120 C 962,120 962,159 969,159"/>
+        <rect class="mm-branch" x="780" y="98" width="170" height="44" rx="9"/>
+        <text class="mm-branch-t" x="865" y="125" text-anchor="middle">Ядро на C</text>
+        <circle class="d-ok" cx="975" cy="81" r="5"/><text class="mm-leaf" x="987" y="85">Парсер выражений</text>
+        <circle class="d-ok" cx="975" cy="107" r="5"/><text class="mm-leaf" x="987" y="111">История 15 на диске</text>
+        <circle class="d-ok" cx="975" cy="133" r="5"/><text class="mm-leaf" x="987" y="137">33/33 юнит-тестов</text>
+        <circle class="d-ok" cx="975" cy="159" r="5"/><text class="mm-leaf" x="987" y="163">Баг папки macOS исправлен</text>
+      </g>
+
+      <!-- ПРАВО: Zig -->
+      <g>
+        <path class="mm-link" d="M950,350 C 962,350 962,311 969,311"/>
+        <path class="mm-link" d="M950,350 C 962,350 962,337 969,337"/>
+        <path class="mm-link" d="M950,350 C 962,350 962,363 969,363"/>
+        <path class="mm-link" d="M950,350 C 962,350 962,389 969,389"/>
+        <rect class="mm-branch" x="780" y="328" width="170" height="44" rx="9"/>
+        <text class="mm-branch-t" x="865" y="355" text-anchor="middle">Zig 0.17.1</text>
+        <circle class="d-ok" cx="975" cy="311" r="5"/><text class="mm-leaf" x="987" y="315">Скачан, SHA256 сверен</text>
+        <circle class="d-ok" cx="975" cy="337" r="5"/><text class="mm-leaf" x="987" y="341">Кросс-сборка 3 ОС проверена</text>
+        <circle class="d-todo" cx="975" cy="363" r="5"/><text class="mm-leaf" x="987" y="367">build.zig — не начат</text>
+        <circle class="d-todo" cx="975" cy="389" r="5"/><text class="mm-leaf" x="987" y="393">macOS без SDK — план</text>
+      </g>
+
+      <!-- ПРАВО: CI -->
+      <g>
+        <path class="mm-link" d="M950,580 C 962,580 962,541 969,541"/>
+        <path class="mm-link" d="M950,580 C 962,580 962,567 969,567"/>
+        <path class="mm-link" d="M950,580 C 962,580 962,593 969,593"/>
+        <path class="mm-link" d="M950,580 C 962,580 962,619 969,619"/>
+        <rect class="mm-branch" x="780" y="558" width="170" height="44" rx="9"/>
+        <text class="mm-branch-t" x="865" y="585" text-anchor="middle">CI · GitHub</text>
+        <circle class="d-ok" cx="975" cy="541" r="5"/><text class="mm-leaf" x="987" y="545">4 ошибки найдены и исправлены</text>
+        <circle class="d-ok" cx="975" cy="567" r="5"/><text class="mm-leaf" x="987" y="571">macOS job зелёный</text>
+        <circle class="d-fail" cx="975" cy="593" r="5"/><text class="mm-leaf" x="987" y="597">Linux job красный</text>
+        <circle class="d-warn" cx="975" cy="619" r="5"/><text class="mm-leaf" x="987" y="623">Windows smoke не запускался</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<section aria-labelledby="h-arch">
+  <h2 id="h-arch">Как устроено</h2>
+  <div class="cols">
+    <div class="panel">
+      <h3>Одно ядро, три тонких слоя</h3>
+      <p>Логика, история и отрисовка написаны один раз в <span class="mono">core.c</span>. Слой под каждую ОС рисует только прямоугольники и текст и передаёт клики и клавиши в ядро.</p>
+<pre class="arch">        src/core.c  (718 строк)
+  парсер · история · кнопки · отрисовка
+        │            │            │
+ plat_win32.c   plat_x11.c   plat_cocoa.m
+ Win32 + GDI    Xlib         Cocoa
+ 206 строк      354 строки   154 строки</pre>
+    </div>
+    <div class="panel">
+      <h3>Где хранится история</h3>
+      <ul class="clean">
+        <li>Windows: <span class="mono">%APPDATA%\MiniCalc\history.txt</span></li>
+        <li>Linux: <span class="mono">~/.local/share/minicalc/history.txt</span></li>
+        <li>macOS: <span class="mono">~/Library/Application Support/MiniCalc/history.txt</span></li>
+      </ul>
+      <h3>Почему C</h3>
+      <p>Python, Electron, Java и .NET сами занимают десятки мегабайт и не влезают в 5 МБ. C с родным API даёт файлы 35–73 КБ и ни одной сторонней зависимости.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-tl">
+  <h2 id="h-tl">Что происходило, по порядку</h2>
+  <div class="panel">
+    <ol class="timeline">
+      <li><div><b>Окружение.</b> Нашлись gcc, clang и libX11-dev. MinGW не было — поставил.</div></li>
+      <li><div><b>Linux-слой, первый запуск в Xvfb.</b> Окно работает, но кириллица не рисуется, RAM 5.9 МБ.<div class="tl-res"><span class="pill s-warn">5.9 МБ</span></div></div></li>
+      <li><div><b>Оптимизация шрифтов.</b> Xlib держал метрики на 65 536 символов, оставил только нужные. Если нет кириллических шрифтов, интерфейс сам переходит на английский.<div class="tl-res"><span class="pill s-ok">4.9 МБ</span></div></div></li>
+      <li><div><b>Windows-слой.</b> MinGW собрал .exe на 56 КБ, зависит только от системных DLL. В Wine 9.0 окно и кириллица в порядке.<div class="tl-res"><span class="pill s-ok">Wine ✓</span></div></div></li>
+      <li><div><b>macOS-слой</b> на Cocoa. Здесь собрать нельзя, поэтому собирает CI.</div></li>
+      <li><div><b>33 юнит-теста</b> с AddressSanitizer и UBSan.<div class="tl-res"><span class="pill s-ok">33/33</span></div></div></li>
+      <li><div><b>Убрал libm, вернул память шрифтов ОС.</b> Linux: 2.6 МБ RSS, 1.0 МБ PSS.<div class="tl-res"><span class="pill s-ok">2.6 МБ</span></div></div></li>
+      <li><div><b>Проверка мышью.</b> 7 × 8 = 56, клик по истории, +1 = 113. История пережила перезапуск.</div></li>
+      <li><div><b>CI, 4 прогона.</b> Исправил по очереди: синтаксис YAML, триггер только на теги, <span class="mono">mkdtemp</span> на macOS и настоящий баг — на Mac история не сохранялась без родительской папки.<div class="tl-res"><span class="pill s-ok">macOS ✓</span><span class="pill s-fail">Windows в CI ✗</span></div></div></li>
+      <li><div><b>Zig 0.17.1.</b> Скачал, сверил SHA256. <span class="mono">zig cc</span> с Linux собрал программы под macOS arm64 и x86_64, Linux glibc 2.28 и MiniCalc.exe (73 КБ). Остановился: вы прервали.<div class="tl-res"><span class="pill s-ok">кросс-сборка ✓</span><span class="pill s-todo">build.zig</span></div></div></li>
+    </ol>
+  </div>
+</section>
+
+<section aria-labelledby="h-meas">
+  <h2 id="h-meas">Замеры</h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Что</th><th>Значение</th><th>Где мерил</th></tr></thead>
+      <tbody>
+        <tr><td>Linux RAM, RSS</td><td class="num">2.6 МБ</td><td>Xvfb, контейнер сессии</td></tr>
+        <tr><td>Linux RAM, PSS (своя доля)</td><td class="num">1.0 МБ</td><td>там же</td></tr>
+        <tr><td>Linux бинарник</td><td class="num">35 КБ</td><td>gcc -Os, strip</td></tr>
+        <tr><td>Windows .exe</td><td class="num">54 / 73 КБ</td><td>MinGW / zig cc</td></tr>
+        <tr><td>Windows RAM</td><td class="num">—</td><td>не измерено: smoke-тест не запускался</td></tr>
+        <tr><td>macOS footprint (как в Activity Monitor)</td><td class="num">16 МБ</td><td>GitHub macos-latest</td></tr>
+        <tr><td>macOS RSS (с общими фреймворками)</td><td class="num">77.6 МБ</td><td>там же</td></tr>
+        <tr><td>Юнит-тесты</td><td class="num">33 / 33</td><td>Linux и macOS</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="h-open">
+  <h2 id="h-open">Что не работает</h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Статус</th><th>Проблема</th><th>Что делать</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill s-fail">CI</span></td><td>Сборка Windows в CI: старый MinGW не знает <span class="mono">WM_DPICHANGED</span></td><td>Одна строка <span class="mono">#define WM_DPICHANGED 0x02E0</span> или сборка через Zig</td></tr>
+        <tr><td><span class="pill s-fail">RAM</span></td><td>macOS 16 МБ при лимите 5 МБ</td><td>Предел Cocoa. Принять или мерить только свою память процесса</td></tr>
+        <tr><td><span class="pill s-todo">Zig</span></td><td>Нет <span class="mono">build.zig</span>, сборка ещё не через Zig</td><td>План ниже, 2–4 часа</td></tr>
+        <tr><td><span class="pill s-warn">QA</span></td><td>Окно не проверено на настоящих Windows и Mac</td><td>Скриншоты в CI или ручной запуск</td></tr>
+        <tr><td><span class="pill s-warn">Linux</span></td><td>Без X11-шрифтов с кириллицей интерфейс на английском</td><td>Встроить свой маленький шрифт</td></tr>
+        <tr><td><span class="pill s-warn">Подпись</span></td><td>Файлы не подписаны, SmartScreen и Gatekeeper предупреждают</td><td>Сертификат Authenticode, Apple Developer ($99/год)</td></tr>
+        <tr><td><span class="pill s-todo">Вопрос</span></td><td>«50 тысяч евро для разработчиков» — смысл неясен</td><td>Нужно ваше уточнение</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="h-score">
+  <h2 id="h-score">Оценка своей работы</h2>
+  <div class="panel">
+    <div class="score">
+      <div>
+        <div class="score-num">665<small> / 1000</small></div>
+        <p style="margin-top:10px;color:var(--muted)">Работает, лёгкое, честно измерено. Минусы: Zig не доведён, CI красный, четыре прогона CI упали из-за моих ошибок.</p>
+      </div>
+      <div class="bars">
+        <div class="bar-row"><span>Функции калькулятора</span><div class="bar"><i style="width:93.3%"></i></div><span class="bar-v">140/150</span></div>
+        <div class="bar-row"><span>Кросс-платформенность</span><div class="bar"><i style="width:73.3%"></i></div><span class="bar-v">110/150</span></div>
+        <div class="bar-row"><span>Лимит 5 МБ RAM</span><div class="bar"><i style="width:60%"></i></div><span class="bar-v">90/150</span></div>
+        <div class="bar-row"><span>Без зависимостей</span><div class="bar"><i style="width:90%"></i></div><span class="bar-v">90/100</span></div>
+        <div class="bar-row"><span>Zig 0.17.1</span><div class="bar"><i style="width:25%"></i></div><span class="bar-v">25/100</span></div>
+        <div class="bar-row"><span>Тесты и проверка</span><div class="bar"><i style="width:70%"></i></div><span class="bar-v">105/150</span></div>
+        <div class="bar-row"><span>Процесс и CI</span><div class="bar"><i style="width:50%"></i></div><span class="bar-v">50/100</span></div>
+        <div class="bar-row"><span>Коммуникация</span><div class="bar"><i style="width:55%"></i></div><span class="bar-v">55/100</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-next">
+  <h2 id="h-next">Рекомендации</h2>
+  <div class="cols">
+    <div class="panel">
+      <h3>По проекту, по порядку</h3>
+      <ol class="plan">
+        <li>Внести фикс <span class="mono">WM_DPICHANGED</span>: CI станет зелёным, запустится замер RAM на Windows.</li>
+        <li>Написать <span class="mono">build.zig</span>: одна команда <span class="mono">zig build</span> собирает все три ОС с любой машины.</li>
+        <li>macOS-слой на C через Objective‑C runtime: Xcode и SDK станут не нужны.</li>
+        <li>Linux: подгружать libX11 при запуске (<span class="mono">dlopen</span>). Тогда для сборки не нужны пакеты X11, а цель glibc 2.17–2.28 даст запуск на старых дистрибутивах.</li>
+        <li>Проверить окно вживую на Windows и Mac.</li>
+        <li>Подписать бинарники перед раздачей клиентам.</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h3>По моей работе</h3>
+      <ul class="clean">
+        <li>Проверять YAML и триггеры CI до пуша (<span class="mono">actionlint</span>).</li>
+        <li>Собирать Windows тем же компилятором, что в CI.</li>
+        <li>Давать короткий статус каждые 2–3 минуты.</li>
+        <li>Уточнять до старта: Zig как компилятор или как язык, как мерить 5 МБ на macOS.</li>
+        <li>Доводить один путь до зелёного CI, потом расширять.</li>
+      </ul>
+      <p class="note">Знать полезно: 5 МБ на macOS — физический предел Cocoa. Пустое окно AppKit уже занимает 10–20 МБ, а сам код калькулятора меньше 1 МБ.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-orch">
+  <h2 id="h-orch">Оркестрация и инструменты</h2>
+  <div class="cols">
+    <div class="panel">
+      <h3>Как реально работало</h3>
+      <p>Всё вёл один агент последовательно: требования → архитектура → три слоя → тесты → CI → проверка Zig → отчёт. В фоне шли только установка пакетов и ожидание CI.</p>
+      <p>Десять субагентов для этого отчёта я не запускал. Вся информация уже была в этой сессии: агенты начали бы с нуля, перечитали бы то же самое и не уложились бы в 2–5 минут. Команда из 10 агентов имеет смысл для параллельной разработки (Windows, Linux, macOS и Zig одновременно). Её расклад есть в подробном отчёте.</p>
+    </div>
+    <div class="panel">
+      <h3>Инструменты</h3>
+      <ul class="clean">
+        <li>Компиляторы: gcc, clang, MinGW-w64, Zig 0.17.1, Apple clang (в CI)</li>
+        <li>Проверка: Xvfb, ImageMagick, Wine 9.0, ASan и UBSan, свои утилиты на C для кликов и клавиш</li>
+        <li>Замеры: <span class="mono">/proc/&lt;pid&gt;/smaps</span>, <span class="mono">footprint</span> на macOS</li>
+        <li>Инфраструктура: git, GitHub Actions, GitHub MCP для логов CI, apt, curl, sha256sum</li>
+      </ul>
+    </div>
+  </div>
+  <div class="files">
+    <code>reports/minicalc/01_kratko.md</code>
+    <code>reports/minicalc/02_podrobno.md</code>
+    <code>reports/minicalc/analysis.html</code>
+  </div>
+</section>
+
+</div>
