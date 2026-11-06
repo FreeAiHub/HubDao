@@ -136,6 +136,7 @@ ul.clean { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 
 .arch { font-family: var(--f-mono); font-size: 12.5px; line-height: 1.5; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px; overflow-x: auto; white-space: pre; margin: 0; }
 .note { border-left: 3px solid var(--warn); padding: 4px 0 4px 14px; color: var(--ink); }
+a { color: var(--accent); text-underline-offset: 2px; }
 .files { display: flex; flex-wrap: wrap; gap: 8px; }
 .files code { font-family: var(--f-mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
 
@@ -384,10 +385,26 @@ ul.clean { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
         <tr><td><span class="pill s-warn">QA</span></td><td>Окно не проверено на настоящих Windows и Mac</td><td>Скриншоты в CI или ручной запуск</td></tr>
         <tr><td><span class="pill s-warn">Linux</span></td><td>Без X11-шрифтов с кириллицей интерфейс на английском</td><td>Встроить свой маленький шрифт</td></tr>
         <tr><td><span class="pill s-warn">Подпись</span></td><td>Файлы не подписаны, SmartScreen и Gatekeeper предупреждают</td><td>Сертификат Authenticode, Apple Developer ($99/год)</td></tr>
-        <tr><td><span class="pill s-todo">Вопрос</span></td><td>«50 тысяч евро для разработчиков» — смысл неясен</td><td>Нужно ваше уточнение</td></tr>
       </tbody>
     </table>
   </div>
+</section>
+
+<section aria-labelledby="h-pay">
+  <h2 id="h-pay">Сколько получает senior на Zig</h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Источник</th><th>Цифра в год</th><th>Комментарий</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://thenextweb.com/news/zig-highest-paying-programming-language">Stack Overflow Survey</a></td><td class="num">$103 611</td><td>медиана, Zig на 1-м месте среди языков; выборка маленькая</td></tr>
+        <tr><td><a href="https://www.ziprecruiter.com/Jobs/Zig-Programming">ZipRecruiter, все Zig-вакансии</a></td><td class="num">~$88 900</td><td>США, октябрь 2026</td></tr>
+        <tr><td><a href="https://www.ziprecruiter.com/Jobs/Senior-Zig-Developer/-in-New-York,NY">ZipRecruiter, senior, Нью-Йорк</a></td><td class="num">~$87 800</td><td>вакансии системщиков: $134–176 тыс.</td></tr>
+        <tr><td><a href="https://www.salary.com/research/company/zig-software-foundation/software-engineer-salary?cjid=20312711">Salary.com, Zig Software Foundation</a></td><td class="num">~$123 700</td><td>один маленький работодатель</td></tr>
+        <tr><td>Моя оценка, senior в США</td><td class="num">$110–150 тыс.</td><td>базовая зарплата</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">€50 000 в год ниже рынка senior на Zig в США. Для Европы и удалёнки это реальная цифра, но надёжных европейских данных по Zig нет. Этот калькулятор senior сделал бы за 1–2 недели, примерно за $3–6 тыс.</p>
 </section>
 
 <section aria-labelledby="h-score">
