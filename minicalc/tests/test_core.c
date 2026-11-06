@@ -42,7 +42,6 @@ int main(void)
     char tmpdir[] = "/tmp/minicalc_test_XXXXXX";
     int i;
     if (!mkdtemp(tmpdir)) return 2;
-    setenv("XDG_DATA_HOME", tmpdir, 1);
     setenv("HOME", tmpdir, 1);
     core_init();
 

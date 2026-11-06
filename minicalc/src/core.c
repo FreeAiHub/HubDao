@@ -169,7 +169,16 @@ static FILE *hist_open(const char *mode)
     return _wfopen(g_hist_wpath, wm);
 }
 #else
-static void make_dir(const char *p) { mkdir(p, 0700); }
+/* mkdir -p */
+static void make_dir(const char *path)
+{
+    char tmp[900];
+    char *c;
+    snprintf(tmp, sizeof tmp, "%s", path);
+    for (c = tmp + 1; *c; c++)
+        if (*c == '/') { *c = '\0'; mkdir(tmp, 0700); *c = '/'; }
+    mkdir(tmp, 0700);
+}
 
 static void init_hist_path(void)
 {
@@ -185,11 +194,8 @@ static void init_hist_path(void)
     if (base && *base) {
         snprintf(dir, sizeof dir, "%s/minicalc", base);
     } else {
-        char tmp[900];
         base = getenv("HOME");
         if (!base || !*base) base = ".";
-        snprintf(tmp, sizeof tmp, "%s/.local", base);        make_dir(tmp);
-        snprintf(tmp, sizeof tmp, "%s/.local/share", base);  make_dir(tmp);
         snprintf(dir, sizeof dir, "%s/.local/share/minicalc", base);
     }
     make_dir(dir);
