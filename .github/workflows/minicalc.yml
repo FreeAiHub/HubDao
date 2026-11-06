@@ -1,0 +1,102 @@
+name: MiniCalc
+
+on:
+  push:
+    paths: ["minicalc/**", ".github/workflows/minicalc.yml"]
+    tags: ["minicalc-v*"]
+  pull_request:
+    paths: ["minicalc/**", ".github/workflows/minicalc.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: minicalc
+
+jobs:
+  linux:
+    # старіший glibc — бінарник запуститься на більшості дистрибутивів
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Залежності для збірки
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev xvfb gcc-mingw-w64-x86-64
+      - name: Тести ядра
+        run: make test
+      - name: Збірка Linux + Windows (MinGW)
+        run: make linux windows
+      - name: Запуск і замір пам'яті (Xvfb)
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 & sleep 1
+          DISPLAY=:99 ./build/minicalc & PID=$!; sleep 2
+          kill -0 $PID
+          grep -E 'VmRSS|RssAnon' /proc/$PID/status | tee mem.txt
+          RSS=$(awk '/VmRSS/{print $2}' /proc/$PID/status)
+          kill $PID
+          echo "RSS = ${RSS} KB"; test "$RSS" -lt 5120
+      - name: Пакування
+        run: |
+          mkdir -p dist
+          tar -C build -czf dist/MiniCalc-linux-x86_64.tar.gz minicalc
+          (cd build && zip -9 ../dist/MiniCalc-windows-x64.zip MiniCalc.exe)
+      - uses: actions/upload-artifact@v4
+        with: { name: MiniCalc-linux-x86_64, path: minicalc/dist/MiniCalc-linux-x86_64.tar.gz }
+      - uses: actions/upload-artifact@v4
+        with: { name: MiniCalc-windows-x64, path: minicalc/dist/MiniCalc-windows-x64.zip }
+
+  windows-smoke:
+    needs: linux
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: MiniCalc-windows-x64 }
+      - name: Запуск і замір пам'яті
+        shell: pwsh
+        working-directory: .
+        run: |
+          Expand-Archive MiniCalc-windows-x64.zip -DestinationPath app
+          $p = Start-Process app\MiniCalc.exe -PassThru
+          Start-Sleep 3
+          $p.Refresh()
+          if ($p.HasExited) { throw "MiniCalc завершився" }
+          $ws = [math]::Round($p.WorkingSet64 / 1MB, 2)
+          $pv = [math]::Round($p.PrivateMemorySize64 / 1MB, 2)
+          "Working set: $ws MB, private: $pv MB"
+          Stop-Process $p
+          if ($pv -ge 5) { throw "Private memory >= 5 MB" }
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Тести ядра
+        run: make test
+      - name: Збірка (universal: Apple Silicon + Intel)
+        run: make mac
+      - name: Запуск і замір пам'яті
+        run: |
+          ./build/MiniCalc.app/Contents/MacOS/MiniCalc & PID=$!; sleep 4
+          kill -0 $PID
+          ps -o rss= -p $PID | awk '{print "RSS: " $1/1024 " MB"}'
+          footprint $PID 2>/dev/null | grep -iE "phys_footprint|Footprint" | head -3 || true
+          kill $PID
+      - name: Пакування
+        run: |
+          mkdir -p dist
+          ditto -c -k --keepParent build/MiniCalc.app dist/MiniCalc-macos-universal.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: MiniCalc-macos-universal, path: minicalc/dist/MiniCalc-macos-universal.zip }
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/minicalc-v')
+    needs: [linux, windows-smoke, macos]
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: . } }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: GitHub Release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "MiniCalc ${GITHUB_REF_NAME#minicalc-v}" --notes "Windows / Linux / macOS"
